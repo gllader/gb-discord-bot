@@ -1,102 +1,70 @@
+const { Client, Events, GatewayIntentBits } = require('discord.js');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require('@discordjs/voice');
 require('dotenv').config()
 
-const Discord = require("discord.js");
-const bot = new Discord.Client();
-
-bot.on("ready", () => {
-  console.log(`Logged in as ${bot.user.tag}`);
-  bot.user.setPresence({activity: {name: '!help to show commands', type: 'LISTENING'}, status: 'online'}).catch(console.error)
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates,
+  ]
 });
 
-bot.on("message", async (msg) => {
-  if (!msg.guild) return;
+client.once(Events.ClientReady, c => {
+  console.log(`Ready! Logged in as ${c.user.tag}`);
+});
 
-  if (msg.content === "!help") {
-    msg.channel.send(
-      `Digite os comandos sem aspas: 'KASINO', 'internacional', 'as baladas', 'ae', 'quem querover'`
-    );
-  }
+client.on('messageCreate', async (msg) => {
 
-  if (msg.content === "KASINO") {
+  if (msg.content === 'KASINO' || msg.content === 'internacional' || msg.content === 'as baladas' || msg.content === 'ae' || msg.content === 'quem querover') {
     if (msg.member.voice.channel) {
-      const connection = await msg.member.voice.channel.join();
-      const dispatcher = connection.play(
-        "https://www.myinstants.com/media/sounds/kasino_1.mp3"
-      );
-
-      dispatcher.setVolume(2);
-      dispatcher.on("finish", () => {
-        console.log("finished playing!");
-        dispatcher.destroy;
+      const connection = joinVoiceChannel({
+        channelId: msg.member.voice.channelId,
+        guildId: msg.guildId,
+        adapterCreator: msg.guild.voiceAdapterCreator,
       });
+
+      if(msg.content === 'KASINO') {
+        var audio = 'https://www.myinstants.com/media/sounds/kasino_1.mp3'
+      }
+      if(msg.content === 'internacional') {
+        var audio = 'https://www.myinstants.com/media/sounds/internacional_GFA5YpH.mp3'
+      }
+      if(msg.content === 'as baladas') {
+        var audio = 'https://www.myinstants.com/media/sounds/asbaladas.mp3'
+      }
+      if(msg.content === 'ae') {
+        var audio = 'https://www.myinstants.com/media/sounds/ae-kasinao_2.mp3'
+      }
+      if(msg.content === 'quem querover') {
+        var audio = 'https://www.myinstants.com/media/sounds/quemquerover.mp3'
+      }
+
+      const audioPlayer = createAudioPlayer();
+
+      const audioResource = createAudioResource(audio);
+
+      audioPlayer.play(audioResource);
+      connection.subscribe(audioPlayer);
+
+      audioPlayer.on('error', (error) => {
+        console.error('Audio player error:', error);
+      });
+
+      audioPlayer.on('stateChange', (oldState, newState) => {
+        if (newState.status === 'idle') {
+          connection.destroy();
+        }
+      });
+
+      msg.reply('Playing audio in your voice channel.');
     } else {
-      msg.reply("you need to join a voice chat channel first!");
-    }
-  }
-
-  if (msg.content === "internacional") {
-    if (msg.member.voice.channel) {
-      const connection = await msg.member.voice.channel.join();
-      const dispatcher = connection.play(
-        `https://www.myinstants.com/media/sounds/internacional_GFA5YpH.mp3`
-      );
-
-      dispatcher.setVolume(1);
-
-      dispatcher.on("finish", () => {
-        console.log("finished playing!");
-        dispatcher.destroy;
-      });
-    }
-  }
-
-  if (msg.content === "as baladas") {
-    if (msg.member.voice.channel) {
-      const connection = await msg.member.voice.channel.join();
-      const dispatcher = connection.play(
-        `https://www.myinstants.com/media/sounds/asbaladas.mp3`
-      );
-
-      dispatcher.setVolume(1);
-
-      dispatcher.on("finish", () => {
-        console.log("finished playing!");
-        dispatcher.destroy;
-      });
-    }
-  }
-
-  if (msg.content === "ae") {
-    if (msg.member.voice.channel) {
-      const connection = await msg.member.voice.channel.join();
-      const dispatcher = connection.play(
-        "https://www.myinstants.com/media/sounds/ae-kasinao_2.mp3"
-      );
-
-      dispatcher.setVolume(5);
-
-      dispatcher.on("finish", () => {
-        console.log("finished playing!");
-        dispatcher.destroy;
-      });
-    }
-  }
-
-  if (msg.content === "quem querover") {
-    if (msg.member.voice.channel) {
-      const connection = await msg.member.voice.channel.join();
-      const dispatcher = connection.play(
-        `https://www.myinstants.com/media/sounds/quemquerover.mp3`
-      );
-
-      dispatcher.setVolume(1);
-
-      dispatcher.on("finish", () => {
-        console.log("finished playing!");
-        dispatcher.destroy;
-      });
+      msg.reply('You need to join a voice chat channel first!');
     }
   }
 });
 
-bot.login(process.env.TOKEN);
+
+client.login(process.env.TOKEN);
